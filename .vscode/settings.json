@@ -1,0 +1,9 @@
+{
+    "editor.tabSize": 2,
+    "files.associations": {
+        "*.oi": "javascript"
+    },
+    "eslint.workingDirectories": ["./"],
+    "editor.codeActionsOnSave": { "source.fixAll.eslink": true },
+    "editor.formatOnSave": true,
+}
