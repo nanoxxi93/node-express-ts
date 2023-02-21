@@ -4,13 +4,29 @@ import { ObjectSchema } from 'joi'
 
 const validatorHandler = <T>(
   schema: ObjectSchema<T>,
-  property: 'body' | 'query' | 'params',
+  property: 'body' | 'query' | 'params' | 'file',
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const data = req[property]
+    const data = req[property] || {}
     const { error } = schema.validate(data, { abortEarly: false })
     if (error) {
-      next(createHttpError(400, error))
+      if (property === 'file') {
+        next(
+          createHttpError(422, {
+            level: 'warn',
+            code: 422,
+            message: 'file is required',
+          }),
+        )
+      } else {
+        next(
+          createHttpError(422, {
+            level: 'warn',
+            code: 422,
+            message: error.message,
+          }),
+        )
+      }
     }
     next()
   }

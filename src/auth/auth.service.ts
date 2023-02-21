@@ -1,31 +1,59 @@
 import jwt from 'jsonwebtoken'
 import createHttpError from 'http-errors'
 import bcrypt from 'bcryptjs'
+import SequelizePool from '../libs/sequelize'
+import dbFunctions from '../db/auth/auth.db.functions'
+import { IAuth, IToken } from './auth.interface'
+import { v4 as uuidv4 } from 'uuid'
+import { IDbUser } from '../db/user/user.db.dto'
+import { DbError } from '../db/common.interface'
+import { DtoDbAuthUserSelByUsername } from '../db/auth/auth.db.dto'
+
+const sequelizePool = new SequelizePool()
 
 class AuthService {
-  constructor() {}
-
-  async validateUsername({ username }: { username: string }) {
-    if (!['admin'].includes(username)) {
-      throw createHttpError(400, 'Invalid username')
+  async validateUsername({
+    _requestid,
+    username,
+  }: {
+    _requestid: string
+    username: string
+  }) {
+    const user = await sequelizePool.pg_one<IDbUser>(
+      dbFunctions.QUERY_USER_SEL_BY_USERNAME.query,
+      new DtoDbAuthUserSelByUsername({
+        _requestid,
+        username,
+      }),
+    )
+    if (user instanceof DbError) {
+      throw user
     }
-    return {
-      id: 1,
-      username,
-      password: '$2a$10$.qIrd3p.LEB2mQp/laa78.jiquvsdrc3OBVB.1e547slLv22L66tG',
+    if (!user) {
+      throw createHttpError(400, {
+        level: 'warn',
+        code: 400,
+        message: 'User does not exist',
+      })
     }
+    if (user.status !== 'ACTIVE') {
+      throw createHttpError(400, {
+        level: 'warn',
+        code: 400,
+        message: 'User is not active',
+      })
+    }
+    return user
   }
 
-  async validatePassword({
-    password,
-    hashedpassword,
-  }: {
-    password: string
-    hashedpassword: string
-  }) {
-    const match = await bcrypt.compare(password, hashedpassword)
+  async validatePassword(password: string, hash: string) {
+    const match = await bcrypt.compare(password, hash)
     if (!match) {
-      throw createHttpError(400, 'Invalid password')
+      throw createHttpError(400, {
+        level: 'warn',
+        code: 400,
+        message: 'Invalid password',
+      })
     }
     return true
   }
@@ -40,6 +68,17 @@ class AuthService {
         resolve(token)
       })
     })
+  }
+
+  async auth({ _requestid, body }: { _requestid: string; body: IAuth }) {
+    const user = await this.validateUsername({
+      _requestid,
+      username: body.username,
+    })
+    await this.validatePassword(body.password, user.password)
+    const { password, ...user_data }: Partial<IToken> = user
+    user_data.token = uuidv4()
+    return await this.signToken(user_data)
   }
 
   async hashString(text: string) {

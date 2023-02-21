@@ -8,7 +8,10 @@ import createHttpError from 'http-errors'
 import cors from 'cors'
 import { addVariables, requestLog } from './middlewares/request.handler'
 import routerApi from './routes'
-import { errorLog, httpExceptionHandler } from './middlewares/error.handler'
+import {
+  errorLogMiddleware,
+  httpExceptionHandler,
+} from './middlewares/error.handler'
 
 const app: Express = express()
 const PORT = +(process.env.PORT || 3001)
@@ -35,7 +38,7 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Express + TypeScript Server is running')
 })
 
-app.use(errorLog)
+app.use(errorLogMiddleware)
 app.use(httpExceptionHandler)
 
 app.listen(PORT, () => {

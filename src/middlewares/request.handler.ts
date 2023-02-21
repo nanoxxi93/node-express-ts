@@ -7,7 +7,8 @@ export const addVariables = async (
   res: Response,
   next: NextFunction,
 ) => {
-  req._requestid = uuidv4()
+  const uuid = uuidv4()
+  req._requestid = uuid
   next()
 }
 
@@ -16,7 +17,7 @@ export const requestLog = async (
   res: Response,
   next: NextFunction,
 ) => {
-  logger.debug('Request', {
+  logger.info('Request', {
     _requestid: req._requestid,
     ip: req.ip,
     host: req.hostname,
