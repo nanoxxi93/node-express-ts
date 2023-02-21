@@ -5,9 +5,52 @@ import { UserCreateRequestDto, UserUpdateRequestDto } from './user.dto'
 import { authBearer, roleCheck } from '../middlewares/authorization.handler'
 import UserService from './user.service'
 import createHttpError from 'http-errors'
+import { User } from '../libs/mongo.utils'
 
 const userRouter: Router = Router()
 const userService = new UserService()
+
+userRouter.get(
+  '/mongo/:operation',
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { operation } = req.params
+    const query = req.query
+    const id = req.query._id
+    delete query['_id']
+    let result
+    switch (operation) {
+      case 'insert':
+        result = await User.create(query)
+        break
+      case 'find':
+        if (id) {
+          result = await User.findById(id)
+        } else {
+          result = await User.findOne(query)
+        }
+        break
+      case 'update':
+        if (id) {
+          result = await User.findByIdAndUpdate(id, query, { new: true })
+        } else {
+          result = '_id is required'
+        }
+        break
+      case 'delete':
+        if (id) {
+          result = await User.findByIdAndDelete(id)
+        } else {
+          result = '_id is required'
+        }
+        break
+    }
+    return res.status(200).json({
+      success: true,
+      result: result,
+      message: '',
+    })
+  },
+)
 
 userRouter.post(
   '/create',

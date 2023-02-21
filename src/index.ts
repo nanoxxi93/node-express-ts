@@ -12,6 +12,7 @@ import {
   errorLogMiddleware,
   httpExceptionHandler,
 } from './middlewares/error.handler'
+import { mongoInit } from './libs/mongo.utils'
 
 const app: Express = express()
 const PORT = +(process.env.PORT || 3001)
@@ -40,6 +41,8 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use(errorLogMiddleware)
 app.use(httpExceptionHandler)
+
+mongoInit()
 
 app.listen(PORT, () => {
   logger.info(`Server is running at http://localhost:${PORT}`)
